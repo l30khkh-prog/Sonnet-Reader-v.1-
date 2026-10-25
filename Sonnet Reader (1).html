@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sonnet Reader</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#faf6ee;--fg:#2b2622;--mute:#8a7f72;--acc:#9b3d2e;--card:#f2ebdd;--line:#ddd2bd;--glow:#f1dfc2;--shadow:0 12px 32px rgba(80,50,20,.13);color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1917;--fg:#ece4d6;--mute:#9a8f80;--acc:#e0806c;--card:#26211e;--line:#3a332e;--glow:#2e2520;--shadow:0 12px 32px rgba(0,0,0,.45);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1c1917;--fg:#ece4d6;--mute:#9a8f80;--acc:#e0806c;--card:#26211e;--line:#3a332e;--glow:#2e2520;--shadow:0 12px 32px rgba(0,0,0,.45);color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse 80% 50% at 50% 0,var(--glow),transparent) no-repeat,var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;line-height:1.6}
+@keyframes f{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.poem.in,.note.in{animation:f .45s ease}
+header{text-align:center;padding:36px 16px 12px}
+h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:3rem;margin:0;letter-spacing:.03em}
+h1::after{content:"❦";display:block;color:var(--acc);font-size:1.2rem;margin-top:4px}
+header p{color:var(--mute);margin:6px 0 0;letter-spacing:.04em;font-size:.95rem}
+.wrap{max-width:900px;margin:0 auto;padding:16px;display:grid;grid-template-columns:240px minmax(0,1fr);gap:24px}
+@media(max-width:700px){.wrap{grid-template-columns:1fr}}
+nav{display:flex;flex-direction:column;gap:6px}
+@media(max-width:700px){nav{flex-direction:row;overflow-x:auto;padding-bottom:6px}nav button{white-space:nowrap;flex:none}}
+nav button{font:inherit;text-align:left;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;transition:transform .2s,box-shadow .2s,border-color .2s;font-weight:500}
+nav button:hover{transform:translateX(3px);border-color:var(--acc);box-shadow:var(--shadow)}
+nav button small{display:block;color:var(--mute)}
+nav button[aria-current="true"]{border-color:var(--acc);box-shadow:inset 3px 0 0 var(--acc)}
+article{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:36px 32px;min-width:0;box-shadow:var(--shadow)}
+@media(max-width:700px){article{padding:24px 18px}}
+article h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:2.3rem;line-height:1.15;margin:0;color:var(--acc)}
+.meta{color:var(--mute);margin:2px 0 18px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.tools button{font:inherit;font-size:.82rem;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:5px 14px;cursor:pointer;transition:all .2s}
+.tools button:hover{border-color:var(--acc);color:var(--acc)}
+.tools button[aria-pressed="true"],.tools button[aria-pressed="true"]:hover{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+.poem{font-family:'Cormorant Garamond',Georgia,serif;font-size:calc(1.35rem*var(--z,1));line-height:1.75}
+.ln{display:flex;gap:14px;padding:0 8px 0 2px;border-radius:8px;transition:background .2s}
+.ln:hover{background:color-mix(in srgb,var(--acc) 8%,transparent)}
+.ln>span:last-child{min-width:0;overflow-wrap:anywhere}
+article h2{overflow-wrap:anywhere}
+aside{min-width:0}
+#q{width:100%;font:inherit;font-size:.85rem;padding:9px 14px;margin-bottom:10px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);outline:none;transition:border-color .2s,box-shadow .2s}
+#q:focus{border-color:var(--acc);box-shadow:var(--shadow)}
+#q::placeholder{color:var(--mute)}
+#nr{color:var(--mute);font-size:.9rem;padding:8px 4px}
+mark{background:color-mix(in srgb,var(--acc) 32%,transparent);color:inherit;border-radius:3px;padding:0 2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chips button{font:inherit;font-size:.78rem;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:3px 10px;cursor:pointer;transition:all .2s}
+.chips button:hover{border-color:var(--acc);color:var(--acc)}
+.chips button[aria-pressed="true"]{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+.pn{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
+.pn button{font:inherit;font-size:.85rem;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:6px 16px;cursor:pointer;transition:all .2s}
+.pn button:hover{border-color:var(--acc);color:var(--acc)}
+@media(max-width:700px){.poem{font-size:calc(1.15rem*var(--z,1))}.ln{gap:8px}}
+.ln .r{width:1.4em;font-family:'Inter',sans-serif;font-size:.7rem;color:transparent;flex:none;text-align:center;align-self:center;border-radius:4px}
+.show-rhyme .ln .r{color:var(--bg);background:var(--c)}
+.ln.gap{margin-top:.9em}
+.ln.volta{border-top:1px dashed var(--acc);padding-top:.3em;margin-top:.6em}
+.note{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);color:var(--mute);font-size:.95rem}
+.note b{color:var(--fg)}
+footer{text-align:center;color:var(--mute);font-size:.8rem;padding:20px}
+</style>
+</head>
+<body>
+<header><h1>Sonnet Reader</h1><p>A quiet reading room for sonnets · pick a poem to begin</p></header>
+<div class="wrap">
+<aside><input id="q" type="search" placeholder="Search poems…" aria-label="Search sonnets" autocomplete="off"><div class="chips" id="chips"></div><nav id="nav" aria-label="Sonnet list"></nav><div id="nr"></div></aside>
+<article>
+<h2 id="t"></h2><div class="meta" id="m"></div>
+<div class="tools">
+<button id="bR" aria-pressed="false">Rhyme scheme</button>
+<button id="bV" aria-pressed="false">Volta</button>
+<button id="bM">A−</button><button id="bP">A+</button>
+<button id="bT">Light / Dark</button><button id="bF" aria-pressed="false">♡ Save</button><button id="bL">▶ Listen</button><button id="bX">Random</button>
+</div>
+<div class="poem" id="p"></div>
+<div class="note" id="n"></div>
+<div class="pn"><button id="pv">← Previous</button><button id="nx">Next →</button></div>
+</article>
+</div>
+<footer>All poems are in the public domain.</footer>
+<script>
+const S=[
+{id:"18",title:"Sonnet 18",au:"William Shakespeare",form:"S",v:8,sub:"Shall I compare thee…",
+note:"Compares the beloved to a summer's day, then turns: her beauty will never fade, because it lives on in the poem itself.",
+t:`Shall I compare thee to a summer's day?
+Thou art more lovely and more temperate:
+Rough winds do shake the darling buds of May,
+And summer's lease hath all too short a date;
+Sometime too hot the eye of heaven shines,
+And often is his gold complexion dimm'd;
+And every fair from fair sometime declines,
+By chance or nature's changing course untrimm'd;
+But thy eternal summer shall not fade,
+Nor lose possession of that fair thou ow'st;
+Nor shall death brag thou wander'st in his shade,
+When in eternal lines to time thou grow'st:
+So long as men can breathe or eyes can see,
+So long lives this, and this gives life to thee.`},
+{id:"29",title:"Sonnet 29",au:"William Shakespeare",form:"S",v:8,sub:"When, in disgrace…",
+note:"Begins in despair and envy, then at line 9 the thought of the beloved lifts the speaker like a lark rising at dawn.",
+t:`When, in disgrace with fortune and men's eyes,
+I all alone beweep my outcast state,
+And trouble deaf heaven with my bootless cries,
+And look upon myself and curse my fate,
+Wishing me like to one more rich in hope,
+Featured like him, like him with friends possess'd,
+Desiring this man's art and that man's scope,
+With what I most enjoy contented least;
+Yet in these thoughts myself almost despising,
+Haply I think on thee, and then my state,
+Like to the lark at break of day arising
+From sullen earth, sings hymns at heaven's gate;
+For thy sweet love remember'd such wealth brings
+That then I scorn to change my state with kings.`},
+{id:"116",title:"Sonnet 116",au:"William Shakespeare",form:"S",sub:"Let me not to the marriage…",
+note:"Defines true love as a fixed star that guides every lost ship, unshaken even as time takes youth away.",
+t:`Let me not to the marriage of true minds
+Admit impediments. Love is not love
+Which alters when it alteration finds,
+Or bends with the remover to remove:
+O no! it is an ever-fixed mark
+That looks on tempests and is never shaken;
+It is the star to every wandering bark,
+Whose worth's unknown, although his height be taken.
+Love's not Time's fool, though rosy lips and cheeks
+Within his bending sickle's compass come:
+Love alters not with his brief hours and weeks,
+But bears it out even to the edge of doom.
+If this be error and upon me proved,
+I never writ, nor no man ever loved.`},
+{id:"130",title:"Sonnet 130",au:"William Shakespeare",form:"S",sub:"My mistress' eyes…",
+note:"A playful send-up of over-the-top love poetry. The closing couplet says real love needs no false comparisons.",
+t:`My mistress' eyes are nothing like the sun;
+Coral is far more red than her lips' red;
+If snow be white, why then her breasts are dun;
+If hairs be wires, black wires grow on her head.
+I have seen roses damask'd, red and white,
+But no such roses see I in her cheeks;
+And in some perfumes is there more delight
+Than in the breath that from my mistress reeks.
+I love to hear her speak, yet well I know
+That music hath a far more pleasing sound;
+I grant I never saw a goddess go;
+My mistress, when she walks, treads on the ground:
+And yet, by heaven, I think my love as rare
+As any she belied with false compare.`},
+{id:"milton",title:"On His Blindness",au:"John Milton",form:"P",sub:"When I consider how my light is spent",
+note:"A Petrarchan example: the first eight lines voice grief over blindness; the last six answer with patience.",
+t:`When I consider how my light is spent,
+Ere half my days, in this dark world and wide,
+And that one Talent which is death to hide
+Lodged with me useless, though my Soul more bent
+To serve therewith my Maker, and present
+My true account, lest he returning chide;
+"Doth God exact day-labour, light denied?"
+I fondly ask; But Patience to prevent
+That murmur, soon replies, "God doth not need
+Either man's work or his own gifts; who best
+Bear his mild yoke, they serve him best. His state
+Is Kingly. Thousands at his bidding speed
+And post o'er Land and Ocean without rest:
+They also serve who only stand and wait."`},
+{id:"73",title:"Sonnet 73",au:"William Shakespeare",form:"S",sub:"That time of year…",
+note:"Three images of ageing: autumn boughs, fading twilight, a dying fire. The couplet turns them into a reason to love more fiercely.",
+t:`That time of year thou mayst in me behold
+When yellow leaves, or none, or few, do hang
+Upon those boughs which shake against the cold,
+Bare ruin'd choirs, where late the sweet birds sang.
+In me thou see'st the twilight of such day
+As after sunset fadeth in the west,
+Which by and by black night doth take away,
+Death's second self, that seals up all in rest.
+In me thou see'st the glowing of such fire
+That on the ashes of his youth doth lie,
+As the death-bed whereon it must expire,
+Consum'd with that which it was nourish'd by.
+This thou perceiv'st, which makes thy love more strong,
+To love that well which thou must leave ere long.`},
+{id:"world",title:"The World Is Too Much with Us",au:"William Wordsworth",form:"W",sub:"Getting and spending…",
+note:"A Petrarchan protest against materialism. The turn at line 9 wishes for an older, pagan way of seeing nature.",
+t:`The world is too much with us; late and soon,
+Getting and spending, we lay waste our powers;—
+Little we see in Nature that is ours;
+We have given our hearts away, a sordid boon!
+The Sea that bares her bosom to the moon;
+The winds that will be howling at all hours,
+And are up-gathered now like sleeping flowers;
+For this, for everything, we are out of tune;
+It moves us not.—Great God! I'd rather be
+A Pagan suckled in a creed outworn;
+So might I, standing on this pleasant lea,
+Have glimpses that would make me less forlorn;
+Have sight of Proteus rising from the sea;
+Or hear old Triton blow his wreathèd horn.`},
+{id:"ozy",title:"Ozymandias",au:"Percy Bysshe Shelley",form:"O",sub:"I met a traveller…",
+note:"A broken statue in the desert mocks a king's boast. Shelley bends the rhyme scheme as freely as the empire fell.",
+t:`I met a traveller from an antique land,
+Who said—"Two vast and trunkless legs of stone
+Stand in the desert. . . . Near them, on the sand,
+Half sunk a shattered visage lies, whose frown,
+And wrinkled lip, and sneer of cold command,
+Tell that its sculptor well those passions read
+Which yet survive, stamped on these lifeless things,
+The hand that mocked them, and the heart that fed;
+And on the pedestal, these words appear:
+My name is Ozymandias, King of Kings;
+Look on my Works, ye Mighty, and despair!
+Nothing beside remains. Round the decay
+Of that colossal Wreck, boundless and bare
+The lone and level sands stretch far away."`},
+{id:"chapman",title:"On First Looking into Chapman's Homer",au:"John Keats",form:"W",sub:"Much have I travell'd…",
+note:"Reading a translation feels like discovering a new planet. The sestet turns from travel to astonishment.",
+t:`Much have I travell'd in the realms of gold,
+And many goodly states and kingdoms seen;
+Round many western islands have I been
+Which bards in fealty to Apollo hold.
+Oft of one wide expanse had I been told
+That deep-brow'd Homer ruled as his demesne;
+Yet did I never breathe its pure serene
+Till I heard Chapman speak out loud and bold:
+Then felt I like some watcher of the skies
+When a new planet swims into his ken;
+Or like stout Cortez when with eagle eyes
+He star'd at the Pacific—and all his men
+Look'd at each other with a wild surmise—
+Silent, upon a peak in Darien.`},
+{id:"30",title:"Sonnet 30",au:"William Shakespeare",form:"S",sub:"When to the sessions…",
+note:"Memory turns into a courtroom of old griefs, until the thought of a dear friend cancels every loss in the couplet.",
+t:`When to the sessions of sweet silent thought
+I summon up remembrance of things past,
+I sigh the lack of many a thing I sought,
+And with old woes new wail my dear time's waste:
+Then can I drown an eye, unused to flow,
+For precious friends hid in death's dateless night,
+And weep afresh love's long since cancell'd woe,
+And moan the expense of many a vanish'd sight:
+Then can I grieve at grievances foregone,
+And heavily from woe to woe tell o'er
+The sad account of fore-bemoaned moan,
+Which I new pay as if not paid before.
+But if the while I think on thee, dear friend,
+All losses are restor'd and sorrows end.`},
+{id:"55",title:"Sonnet 55",au:"William Shakespeare",form:"S",v:8,sub:"Not marble, nor the gilded monuments…",
+note:"A boast that verse outlasts stone. War can topple statues, but not the living record kept in the poem.",
+t:`Not marble, nor the gilded monuments
+Of princes, shall outlive this powerful rhyme;
+But you shall shine more bright in these contents
+Than unswept stone, besmear'd with sluttish time.
+When wasteful war shall statues overturn,
+And broils root out the work of masonry,
+Nor Mars his sword nor war's quick fire shall burn
+The living record of your memory.
+'Gainst death and all-oblivious enmity
+Shall you pace forth; your praise shall still find room
+Even in the eyes of all posterity
+That wear this world out to the ending doom.
+So, till the judgment that yourself arise,
+You live in this, and dwell in lovers' eyes.`},
+{id:"60",title:"Sonnet 60",au:"William Shakespeare",form:"S",sub:"Like as the waves…",
+note:"Minutes crash toward the end like waves on a shore, and Time cuts down all beauty. Only the verse stands against his scythe.",
+t:`Like as the waves make towards the pebbled shore,
+So do our minutes hasten to their end;
+Each changing place with that which goes before,
+In sequent toil all forwards do contend.
+Nativity, once in the main of light,
+Crawls to maturity, wherewith being crown'd,
+Crooked eclipses 'gainst his glory fight,
+And Time that gave doth now his gift confound.
+Time doth transfix the flourish set on youth
+And delves the parallels in beauty's brow,
+Feeds on the rarities of nature's truth,
+And nothing stands but for his scythe to mow:
+And yet to times in hope my verse shall stand,
+Praising thy worth, despite his cruel hand.`},
+{id:"bright",title:"Bright Star",au:"John Keats",form:"S",v:8,sub:"Bright star, would I were stedfast…",
+note:"Keats wants the star's constancy but not its cold solitude. At line 9 he asks to stay fixed against his lover's breast instead.",
+t:`Bright star, would I were stedfast as thou art—
+Not in lone splendour hung aloft the night
+And watching, with eternal lids apart,
+Like nature's patient, sleepless Eremite,
+The moving waters at their priestlike task
+Of pure ablution round earth's human shores,
+Or gazing on the new soft-fallen mask
+Of snow upon the mountains and the moors—
+No—yet still stedfast, still unchangeable,
+Pillow'd upon my fair love's ripening breast,
+To feel for ever its soft fall and swell,
+Awake for ever in a sweet unrest,
+Still, still to hear her tender-taken breath,
+And so live ever—or else swoon to death.`},
+{id:"death",title:"Death, Be Not Proud",au:"John Donne",form:"D",sub:"Holy Sonnet 10",
+note:"Donne confronts Death like an arrogant opponent and strips his power away, ending with a paradox: after a short sleep, Death himself dies.",
+t:`Death, be not proud, though some have called thee
+Mighty and dreadful, for thou art not so;
+For those whom thou think'st thou dost overthrow
+Die not, poor Death, nor yet canst thou kill me.
+From rest and sleep, which but thy pictures be,
+Much pleasure; then from thee much more must flow,
+And soonest our best men with thee do go,
+Rest of their bones, and soul's delivery.
+Thou art slave to fate, chance, kings, and desperate men,
+And dost with poison, war, and sickness dwell,
+And poppy or charms can make us sleep as well
+And better than thy stroke; why swell'st thou then?
+One short sleep past, we wake eternally,
+And death shall be no more; Death, thou shalt die.`},
+{id:"43",title:"Sonnet 43",au:"Elizabeth Barrett Browning",form:"W",sub:"How do I love thee?",
+note:"A list of love's measures, from spiritual heights to everyday quiet needs, ending with a promise that love will outlast death.",
+t:`How do I love thee? Let me count the ways.
+I love thee to the depth and breadth and height
+My soul can reach, when feeling out of sight
+For the ends of being and ideal grace.
+I love thee to the level of every day's
+Most quiet need, by sun and candle-light.
+I love thee freely, as men strive for right;
+I love thee purely, as they turn from praise.
+I love thee with the passion put to use
+In my old griefs, and with my childhood's faith.
+I love thee with a love I seemed to lose
+With my lost saints,—I love thee with the breath,
+Smiles, tears, of all my life!—and, if God choose,
+I shall but love thee better after death.`},
+{id:"remember",title:"Remember",au:"Christina Rossetti",form:"R",sub:"Remember me when I am gone away",
+note:"A farewell that begins by asking to be remembered, then turns at line 9 to something gentler: better to forget and smile than remember and be sad.",
+t:`Remember me when I am gone away,
+Gone far away into the silent land;
+When you can no more hold me by the hand,
+Nor I half turn to go yet turning stay.
+Remember me when no more day by day
+You tell me of our future that you plann'd:
+Only remember me; you understand
+It will be late to counsel then or pray.
+Yet if you should forget me for a while
+And afterwards remember, do not grieve:
+For if the darkness and corruption leave
+A vestige of the thoughts that once I had,
+Better by far you should forget and smile
+Than that you should remember and be sad.`},
+{id:"bridge",title:"Composed upon Westminster Bridge",au:"William Wordsworth",form:"W",sub:"Earth has not anything to show more fair",
+note:"A rare city poem: London at dawn, quiet and glittering, seen as part of nature. The sestet holds a calm so deep the whole city seems asleep.",
+t:`Earth has not anything to show more fair:
+Dull would he be of soul who could pass by
+A sight so touching in its majesty:
+This City now doth, like a garment, wear
+The beauty of the morning; silent, bare,
+Ships, towers, domes, theatres, and temples lie
+Open unto the fields, and to the sky;
+All bright and glittering in the smokeless air.
+Never did sun more beautifully steep
+In his first splendour, valley, rock, or hill;
+Ne'er saw I, never felt, a calm so deep!
+The river glideth at his own sweet will:
+Dear God! the very houses seem asleep;
+And all that mighty heart is lying still!`},
+{id:"1",title:"Sonnet 1",au:"William Shakespeare",form:"S",v:8,sub:"From fairest creatures…",
+note:"The opening of the sequence: a plea to a beautiful young man not to waste his beauty, but to have children so it lives on.",
+t:`From fairest creatures we desire increase,
+That thereby beauty's rose might never die,
+But as the riper should by time decease,
+His tender heir might bear his memory:
+But thou, contracted to thine own bright eyes,
+Feed'st thy light's flame with self-substantial fuel,
+Making a famine where abundance lies,
+Thyself thy foe, to thy sweet self too cruel.
+Thou that art now the world's fresh ornament
+And only herald to the gaudy spring,
+Within thine own bud buriest thy content
+And, tender churl, makest waste in niggarding.
+Pity the world, or else this glutton be,
+To eat the world's due, by the grave and thee.`},
+{id:"33",title:"Sonnet 33",au:"William Shakespeare",form:"S",v:8,sub:"Full many a glorious morning…",
+note:"A sunny morning turns to cloud, and so does a friend's love. The speaker forgives, because even the sun in heaven has its stains.",
+t:`Full many a glorious morning have I seen
+Flatter the mountain-tops with sovereign eye,
+Kissing with golden face the meadows green,
+Gilding pale streams with heavenly alchemy;
+Anon permit the basest clouds to ride
+With ugly rack on his celestial face,
+And from the forlorn world his visage hide,
+Stealing unseen to west with this disgrace:
+Even so my sun one early morn did shine
+With all triumphant splendour on my brow;
+But out, alack! he was but one hour mine;
+The region cloud hath mask'd him from me now.
+Yet him for this my love no whit disdaineth;
+Suns of the world may stain when heaven's sun staineth.`},
+{id:"65",title:"Sonnet 65",au:"William Shakespeare",form:"S",v:8,sub:"Since brass, nor stone…",
+note:"If brass, stone and sea all yield to time, how can fragile beauty survive? Only black ink, the poem itself, can keep it shining.",
+t:`Since brass, nor stone, nor earth, nor boundless sea,
+But sad mortality o'er-sways their power,
+How with this rage shall beauty hold a plea,
+Whose action is no stronger than a flower?
+O, how shall summer's honey breath hold out
+Against the wrackful siege of battering days,
+When rocks impregnable are not so stout,
+Nor gates of steel so strong, but Time decays?
+O fearful meditation! where, alack,
+Shall Time's best jewel from Time's chest lie hid?
+Or what strong hand can hold his swift foot back?
+Or who his spoil of beauty can forbid?
+O, none, unless this miracle have might,
+That in black ink my love may still shine bright.`},
+{id:"71",title:"Sonnet 71",au:"William Shakespeare",form:"S",sub:"No longer mourn for me…",
+note:"An unusual love poem: the speaker asks to be forgotten after death rather than let the beloved suffer for him.",
+t:`No longer mourn for me when I am dead
+Than you shall hear the surly sullen bell
+Give warning to the world that I am fled
+From this vile world, with vilest worms to dwell:
+Nay, if you read this line, remember not
+The hand that writ it; for I love you so
+That I in your sweet thoughts would be forgot
+If thinking on me then should make you woe.
+O, if, I say, you look upon this verse
+When I perhaps compounded am with clay,
+Do not so much as my poor name rehearse,
+But let your love even with my life decay,
+Lest the wise world should look into your moan
+And mock you with me after I am gone.`},
+{id:"106",title:"Sonnet 106",au:"William Shakespeare",form:"S",v:8,sub:"When in the chronicle of wasted time…",
+note:"Old poets praised ideal beauty in their verses. Shakespeare says they were really foreseeing the beloved, whom they lacked the skill to describe.",
+t:`When in the chronicle of wasted time
+I see descriptions of the fairest wights,
+And beauty making beautiful old rhyme
+In praise of ladies dead and lovely knights,
+Then, in the blazon of sweet beauty's best,
+Of hand, of foot, of lip, of eye, of brow,
+I see their antique pen would have express'd
+Even such a beauty as you master now.
+So all their praises are but prophecies
+Of this our time, all you prefiguring;
+And, for they look'd but with divining eyes,
+They had not skill enough your worth to sing:
+For we, which now behold these present days,
+Have eyes to wonder, but lack tongues to praise.`},
+{id:"fears",title:"When I Have Fears",au:"John Keats",form:"S",sub:"When I have fears that I may cease to be",
+note:"Keats fears dying before his work and his love are fulfilled. The last two lines leave him alone on the shore of the world, watching fame and love sink away.",
+t:`When I have fears that I may cease to be
+Before my pen has glean'd my teeming brain,
+Before high-piled books, in charactery,
+Hold like rich garners the full-ripen'd grain;
+When I behold, upon the night's starr'd face,
+Huge cloudy symbols of a high romance,
+And think that I may never live to trace
+Their shadows, with the magic hand of chance;
+And when I feel, fair creature of an hour,
+That I shall never look upon thee more,
+Never have relish in the faery power
+Of unreflecting love;—then on the shore
+Of the wide world I stand alone, and think
+Till Love and Fame to nothingness do sink.`},
+{id:"soldier",title:"The Soldier",au:"Rupert Brooke",form:"T",sub:"If I should die, think only this of me",
+note:"A 1914 war sonnet that imagines a soldier's grave as a piece of England. The sestet turns inward to what he gave back to the country that made him.",
+t:`If I should die, think only this of me:
+That there's some corner of a foreign field
+That is for ever England. There shall be
+In that rich earth a richer dust concealed;
+A dust whom England bore, shaped, made aware,
+Gave, once, her flowers to love, her ways to roam,
+A body of England's, breathing English air,
+Washed by the rivers, blest by suns of home.
+And think, this heart, all evil shed away,
+A pulse in the eternal mind, no less
+Gives somewhere back the thoughts by England given;
+Her sights and sounds; dreams happy as her day;
+And laughter, learnt of friends; and gentleness,
+In hearts at peace, under an English heaven.`},
+{id:"grandeur",title:"God's Grandeur",au:"Gerard Manley Hopkins",form:"W",sub:"The world is charged with the grandeur of God",
+note:"Industry has scarred the earth, yet nature is never used up. The sestet turns to the promise of dawn and a brooding Holy Ghost.",
+t:`The world is charged with the grandeur of God.
+It will flame out, like shining from shook foil;
+It gathers to a greatness, like the ooze of oil
+Crushed. Why do men then now not reck his rod?
+Generations have trod, have trod, have trod;
+And all is seared with trade; bleared, smeared with toil;
+And wears man's smudge and shares man's smell: the soil
+Is bare now, nor can foot feel, being shod.
+And for all this, nature is never spent;
+There lives the dearest freshness deep down things;
+And though the last lights off the black West went
+Oh, morning, at the brown brink eastward, springs—
+Because the Holy Ghost over the bent
+World broods with warm breast and with ah! bright wings.`},
+{id:"london",title:"London, 1802",au:"William Wordsworth",form:"R",sub:"Milton! thou shouldst be living at this hour",
+note:"Wordsworth calls on the dead Milton to rescue a selfish England. The sestet praises the poet's soul, which kept to the lowliest duties.",
+t:`Milton! thou shouldst be living at this hour:
+England hath need of thee: she is a fen
+Of stagnant waters: altar, sword, and pen,
+Fireside, the heroic wealth of hall and bower,
+Have forfeited their ancient English dower
+Of inward happiness. We are selfish men;
+Oh! raise us up, return to us again;
+And give us manners, virtue, freedom, power.
+Thy soul was like a Star, and dwelt apart:
+Thou hadst a voice whose sound was like the sea:
+Pure as the naked heavens, majestic, free,
+So didst thou travel on life's common way,
+In cheerful godliness; and yet thy heart
+The lowliest duties on herself did lay.`},
+{id:"ebb14",title:"Sonnet 14",au:"Elizabeth Barrett Browning",form:"W",sub:"If thou must love me, let it be for nought",
+note:"Love me for love's own sake, not for a smile or a way of speaking, since those things can change and take the love with them.",
+t:`If thou must love me, let it be for nought
+Except for love's sake only. Do not say
+"I love her for her smile—her look—her way
+Of speaking gently,—for a trick of thought
+That falls in well with mine, and certes brought
+A sense of pleasant ease on such a day"—
+For these things in themselves, Beloved, may
+Be changed, or change for thee,—and love, so wrought,
+May be unwrought so. Neither love me for
+Thine own dear pity's wiping my cheeks dry,—
+A creature might forget to weep, who bore
+Thy comfort long, and lose thy love thereby!
+But love me for love's sake, that evermore
+Thou mayst love on, through love's eternity.`},
+{id:"colossus",title:"The New Colossus",au:"Emma Lazarus",form:"W",sub:"Not like the brazen giant of Greek fame",
+note:"Written for the Statue of Liberty. The octave contrasts her with the conquering Colossus of Rhodes; the sestet gives her voice.",
+t:`Not like the brazen giant of Greek fame,
+With conquering limbs astride from land to land;
+Here at our sea-washed, sunset gates shall stand
+A mighty woman with a torch, whose flame
+Is the imprisoned lightning, and her name
+Mother of Exiles. From her beacon-hand
+Glows world-wide welcome; her mild eyes command
+The air-bridged harbor that twin cities frame.
+"Keep, ancient lands, your storied pomp!" cries she
+With silent lips. "Give me your tired, your poor,
+Your huddled masses yearning to breathe free,
+The wretched refuse of your teeming shore.
+Send these, the homeless, tempest-tost to me,
+I lift my lamp beside the golden door!"`},
+{id:"anthem",title:"Anthem for Doomed Youth",au:"Wilfred Owen",form:"A",sub:"What passing-bells for these who die as cattle?",
+note:"Instead of church bells, the guns and shells mourn the dead. The sestet replaces candles and flowers with the grief of those left at home.",
+t:`What passing-bells for these who die as cattle?
+Only the monstrous anger of the guns.
+Only the stuttering rifles' rapid rattle
+Can patter out their hasty orisons.
+No mockeries now for them; no prayers nor bells;
+Nor any voice of mourning save the choirs,—
+The shrill, demented choirs of wailing shells;
+And bugles calling for them from sad shires.
+What candles may be held to speed them all?
+Not in the hands of boys, but in their eyes
+Shall shine the holy glimmers of goodbyes.
+The pallor of girls' brows shall be their pall;
+Their flowers the tenderness of patient minds,
+And each slow dusk a drawing-down of blinds.`},
+{id:"batter",title:"Batter My Heart",au:"John Donne",form:"N",sub:"Holy Sonnet 14",
+note:"A violent prayer: the speaker asks God not to knock politely but to break, burn and remake him, since he is held captive by the enemy.",
+t:`Batter my heart, three-person'd God, for you
+As yet but knock, breathe, shine, and seek to mend;
+That I may rise and stand, o'erthrow me, and bend
+Your force to break, blow, burn, and make me new.
+I, like an usurp'd town to another due,
+Labour to admit you, but Oh, to no end;
+Reason, your viceroy in me, me should defend,
+But is captived, and proves weak or untrue.
+Yet dearly I love you, and would be loved fain,
+But am betroth'd unto your enemy;
+Divorce me, untie or break that knot again,
+Take me to you, imprison me, for I,
+Except you enthrall me, never shall be free,
+Nor ever chaste, except you ravish me.`}];
+const SC={S:"ABABCDCDEFEFGG",P:"ABBAABBACDECDE",W:"ABBAABBACDCDCD",O:"ABABACDCEDEFEF",D:"ABBAABBACDDCEE",R:"ABBAABBACDDECE",T:"ABABCDCDEFGEFG",A:"ABABCDCDEFFEGG",N:"ABBAABBACDCDEE"};
+const FN={S:"Shakespearean (ABAB CDCD EFEF GG)",P:"Petrarchan (ABBAABBA CDECDE)",W:"Petrarchan (ABBAABBA CDCDCD)",O:"Irregular (ABABACDC EDEFEF)",D:"Petrarchan (ABBAABBA CDDC EE)",R:"Petrarchan (ABBAABBA CDDECE)",T:"Mixed (ABAB CDCD EFG EFG)",A:"Mixed (ABAB CDCD EFFE GG)",N:"Petrarchan (ABBAABBA CDCD EE)"};
+const VO={S:12,P:8,W:8,O:8,D:8,R:8,T:8,A:8,N:8};
+const COL={A:"#9b3d2e",B:"#3d6b8f",C:"#5c7f3a",D:"#8a5aa0",E:"#b08419",F:"#2f7f7a",G:"#c0506f"};
+const $=i=>document.getElementById(i);
+let cur=0,z=1;
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+function show(i){
+ cur=i;const s=S[i],sc=SC[s.form],L=s.t.split("\n");
+ $("t").textContent=s.title;upF();$("m").textContent=s.au+" · "+FN[s.form];
+ const brk=s.form==="S"?[4,8,12]:[8];
+ $("p").innerHTML=L.map((l,k)=>`<div class="ln${brk.includes(k)?" gap":""}${k===(s.v??VO[s.form])?" volta":""}"><span class="r" style="--c:${COL[sc[k]]}">${sc[k]}</span><span>${hl(l)}</span></div>`).join("");
+ $("n").innerHTML="<b>Note:</b> "+s.note;
+ if(!noanim)["p","n"].forEach(k=>{const e=$(k);e.classList.remove("in");void e.offsetWidth;e.classList.add("in")});
+ document.querySelectorAll("#nav button").forEach((b,k)=>b.setAttribute("aria-current",k===i));
+ applyV();
+}
+function applyV(){
+ const on=$("bV").getAttribute("aria-pressed")==="true";
+ document.querySelectorAll(".ln.volta").forEach(e=>{e.style.borderTopColor=on?"":"transparent"});
+}
+$("nav").innerHTML=S.map((s,i)=>`<button data-i="${i}">${s.title}<small>${s.au}</small></button>`).join("");
+$("nav").onclick=e=>{const b=e.target.closest("button");if(b)go(+b.dataset.i)};
+$("bR").onclick=e=>{const o=e.target.getAttribute("aria-pressed")!=="true";e.target.setAttribute("aria-pressed",o);$("p").classList.toggle("show-rhyme",o)};
+$("bV").onclick=e=>{e.target.setAttribute("aria-pressed",e.target.getAttribute("aria-pressed")!=="true");applyV()};
+$("bP").onclick=()=>{z=Math.min(1.6,z+.1);$("p").style.setProperty("--z",z)};
+$("bM").onclick=()=>{z=Math.max(.7,z-.1);$("p").style.setProperty("--z",z)};
+let dk=matchMedia("(prefers-color-scheme: dark)").matches;
+$("bT").onclick=()=>{dk=!dk;document.documentElement.setAttribute("data-theme",dk?"dark":"light")};
+const q=$("q");let noanim=false;
+let fl="All",favs=new Set();
+try{favs=new Set(JSON.parse(localStorage.getItem("sr-fav")||"[]"))}catch(e){}
+function saveF(){try{localStorage.setItem("sr-fav",JSON.stringify([...favs]))}catch(e){}}
+const grp=s=>s.form==="S"?"Shakespearean":s.form==="O"||s.form==="T"||s.form==="A"?"Other":"Petrarchan";
+function fm(s){return fl==="All"||(fl==="♥ Saved"?favs.has(s.id):grp(s)===fl)}
+function upF(){const on=favs.has(S[cur].id);$("bF").setAttribute("aria-pressed",on);$("bF").textContent=on?"♥ Saved":"♡ Save"}
+function stopS(){try{speechSynthesis.cancel()}catch(e){}$("bL").textContent="▶ Listen"}
+function go(i){stopS();show(i)}
+function vis(){return [...document.querySelectorAll("#nav button")].filter(b=>!b.hidden).map(b=>+b.dataset.i)}
+function step(d){const v=vis();if(!v.length)return;let p=v.indexOf(cur);p=p<0?0:(p+d+v.length)%v.length;go(v[p])}
+function hl(t){const v=q.value.trim();if(!v)return esc(t);return esc(t).replace(new RegExp("("+v.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","gi"),"<mark>$1</mark>")}
+function filt(){const v=q.value.trim().toLowerCase();let c=0;document.querySelectorAll("#nav button").forEach((b,k)=>{const s=S[k],hit=(!v||(s.title+" "+s.au+" "+s.sub+" "+s.t).toLowerCase().includes(v))&&fm(s);b.hidden=!hit;if(hit)c++});$("nr").textContent=c?(v||fl!=="All"?c+" of "+S.length+" poems":""):"No poems found.";if(v||fl!=="All"){const bs=[...document.querySelectorAll("#nav button")];if(bs[cur].hidden){const f=bs.find(b=>!b.hidden);if(f)f.click()}}noanim=true;show(cur);noanim=false}
+q.oninput=filt;
+q.onkeydown=e=>{if(e.key==="Enter"){const b=document.querySelector("#nav button:not([hidden])");if(b)b.click()}else if(e.key==="Escape"){q.value="";filt()}};
+const CH=["All","Shakespearean","Petrarchan","Other","♥ Saved"];
+$("chips").innerHTML=CH.map(c=>`<button aria-pressed="${c===fl}">${c}</button>`).join("");
+$("chips").onclick=e=>{const b=e.target.closest("button");if(!b)return;fl=b.textContent;[...$("chips").children].forEach(x=>x.setAttribute("aria-pressed",x===b));filt()};
+$("bF").onclick=()=>{const id=S[cur].id;favs.has(id)?favs.delete(id):favs.add(id);saveF();upF()};
+$("bX").onclick=()=>{const v=vis().filter(i=>i!==cur);if(v.length)go(v[Math.floor(Math.random()*v.length)])};
+$("pv").onclick=()=>{step(-1);scrollTo({top:0,behavior:"smooth"})};
+$("nx").onclick=()=>{step(1);scrollTo({top:0,behavior:"smooth"})};
+document.addEventListener("keydown",e=>{if(e.target===q||e.metaKey||e.ctrlKey||e.altKey)return;if(e.key==="ArrowRight")step(1);else if(e.key==="ArrowLeft")step(-1)});
+if("speechSynthesis" in window){$("bL").onclick=()=>{if(speechSynthesis.speaking){stopS();return}const u=new SpeechSynthesisUtterance(S[cur].t);u.lang="en-GB";u.rate=.85;u.onend=()=>{$("bL").textContent="▶ Listen"};speechSynthesis.speak(u);$("bL").textContent="■ Stop"}}else $("bL").hidden=true;
+show(0);
+</script>
+</body>
+</html>
